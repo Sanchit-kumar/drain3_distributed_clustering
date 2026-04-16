@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  log-analyzer-api:
+    build: .
+    container_name: drain3_api
+    ports:
+      - "8090:8090"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=local  # Tells the API not to look for a K8s cluster
+      - S3_ENDPOINT=http://host.docker.internal:9000
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password123
+      - BUCKET_NAME=my-bucket-name
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8090", "--reload"]
