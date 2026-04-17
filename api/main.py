@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 from common.config import logger, ENVIRONMENT, S3_BUCKET_NAME, S3_BUCKET_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY
 # --- Configuration ---
-
+    
 app = FastAPI(title="Dask Drain3 Log Analyzer")
 
 # Enhanced tracker to store timing info
@@ -35,16 +35,26 @@ def denoise_text(text: str) -> str:
     return " ".join(text.split())
 
 def process_partition(df_partition: pd.DataFrame, column_name: str) -> pd.DataFrame:
-    """Worker task optimized for memory efficiency."""
+    """Worker task optimized for memory efficiency and handling empty logs."""
     miner = TemplateMiner(config=TemplateMinerConfig())
     tracking = {}
 
     # itertuples is significantly faster and more memory-efficient than iterrows
     for row in df_partition.itertuples():
-        raw_log = str(getattr(row, column_name))
+        raw_val = getattr(row, column_name)
         idx = row[0] 
         
-        c_id = miner.add_log_message(denoise_text(raw_log))["cluster_id"]
+        # --- NEW: Robust Empty/None Handling ---
+        # Checks for pandas NA/NaN, empty whitespace strings, or stringified nulls
+        if pd.isna(raw_val) or str(raw_val).strip().lower() in ("", "none", "nan", "null"):
+            raw_log = "<EMPTY_LOG>"
+            processed_log = "<EMPTY_LOG>"
+        else:
+            raw_log = str(raw_val)
+            processed_log = denoise_text(raw_log)
+        # ---------------------------------------
+        
+        c_id = miner.add_log_message(processed_log)["cluster_id"]
 
         if c_id not in tracking:
             tracking[c_id] = {"rep": raw_log, "first": idx, "last": idx}
@@ -148,7 +158,7 @@ def run_dask_pipeline(job_id: str, file_key: str, column_name: str):
             "last_occurrence": final_tracking[c.cluster_id]["last"]
         } for c in master_miner.drain.clusters]
 
-        # os.makedirs("output_csvs", exist_ok=True)
+        os.makedirs("output_csvs", exist_ok=True)
         pd.DataFrame(final_output).to_csv(output_csv, index=False)
         
         end_time = time.time()
