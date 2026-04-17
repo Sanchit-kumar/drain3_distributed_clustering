@@ -6,14 +6,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger("drain3_app")
 
 # S3 / MinIO Config
-ENDPOINT_URL = "http://localhost:9000"
-BUCKET = "my-bucket-name"
 
-
-S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://host.docker.internal:9000")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+S3_BUCKET_ENDPOINT = os.getenv("S3_ENDPOINT", "http://host.docker.internal:9000")
 S3_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID", "admin")
 S3_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "password123")
-BUCKET_NAME = os.getenv("BUCKET_NAME", "my-bucket-name")
+S3_BUCKET_NAME = os.getenv("BUCKET_NAME", "my-bucket-name")
 
 # Redis Config
 # REDIS_HOST = os.getenv("REDIS_HOST", "host.docker.internal")

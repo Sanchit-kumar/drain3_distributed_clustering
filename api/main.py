@@ -14,16 +14,8 @@ import pyarrow as pa
 import gc
 import time
 from datetime import datetime
-
+from common.config import logger, ENVIRONMENT, S3_BUCKET_NAME, S3_BUCKET_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY
 # --- Configuration ---
-ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
-BUCKET_NAME = os.getenv("BUCKET_NAME", "my-bucket-name")
-S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:9000")
-S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", "admin")
-S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", "password123")
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("dask_api")
 
 app = FastAPI(title="Dask Drain3 Log Analyzer")
 
@@ -82,7 +74,7 @@ def run_dask_pipeline(job_id: str, file_key: str, column_name: str):
         "start_time": datetime.fromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S')
     })
     
-    s3_path = f"s3://{BUCKET_NAME}/{file_key}"
+    s3_path = f"s3://{S3_BUCKET_NAME}/{file_key}"
     output_csv = f"output_csvs/tocs_{file_key.replace('.parquet', '')}.csv"
     
     cluster = None
@@ -117,7 +109,7 @@ def run_dask_pipeline(job_id: str, file_key: str, column_name: str):
             engine="pyarrow",
             blocksize="32MiB",
             storage_options={
-                "client_kwargs": {"endpoint_url": S3_ENDPOINT}, 
+                "client_kwargs": {"endpoint_url": S3_BUCKET_ENDPOINT}, 
                 "key": S3_ACCESS_KEY, 
                 "secret": S3_SECRET_KEY
             }
@@ -156,7 +148,7 @@ def run_dask_pipeline(job_id: str, file_key: str, column_name: str):
             "last_occurrence": final_tracking[c.cluster_id]["last"]
         } for c in master_miner.drain.clusters]
 
-        os.makedirs("output_csvs", exist_ok=True)
+        # os.makedirs("output_csvs", exist_ok=True)
         pd.DataFrame(final_output).to_csv(output_csv, index=False)
         
         end_time = time.time()
